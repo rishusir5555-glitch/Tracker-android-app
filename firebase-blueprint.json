@@ -1,0 +1,265 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and active role selection in Swachh Shiksha.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Mobile number entered during Parent/Driver onboarding."
+        },
+        "activeRole": {
+          "type": "string",
+          "enum": ["PARENT", "SCHOOL_OWNER", "SUPER_ADMIN", "DRIVER"],
+          "description": "Currently selected role experience."
+        },
+        "selectedSchoolId": {
+          "type": "string",
+          "description": "Currently selected tenant school ID."
+        },
+        "selectedBusId": {
+          "type": "string",
+          "description": "Currently selected bus ID for parent tracking."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "displayName", "phone", "activeRole", "selectedSchoolId", "selectedBusId", "createdAt", "updatedAt"]
+    },
+    "SchoolRecord": {
+      "title": "SchoolRecord",
+      "description": "Multi-school SaaS tenant school record managed by Super Admin and isolated by schoolId.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID in Firestore workspace."
+        },
+        "schoolCode": {
+          "type": "string",
+          "description": "Unique human-readable school code such as SCH-0001."
+        },
+        "name": {
+          "type": "string",
+          "description": "School display name."
+        },
+        "address": {
+          "type": "string",
+          "description": "School campus address."
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "School owner full name."
+        },
+        "ownerMobile": {
+          "type": "string",
+          "description": "School owner mobile number."
+        },
+        "loginId": {
+          "type": "string",
+          "description": "School owner login identifier."
+        },
+        "busCount": {
+          "type": "integer",
+          "description": "Number of registered buses for this school."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the school tenant is active."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "schoolCode", "name", "address", "ownerName", "ownerMobile", "loginId", "busCount", "isActive", "createdAt", "updatedAt"]
+    },
+    "BusRecord": {
+      "title": "BusRecord",
+      "description": "School bus record with live GPS status, driver details, and route telemetry.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID in Firestore workspace."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "Tenant school ID (e.g., SCH-0001)."
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "Denormalized school name."
+        },
+        "busNumber": {
+          "type": "string",
+          "description": "Short bus fleet number (e.g., BUS-12)."
+        },
+        "registrationNumber": {
+          "type": "string",
+          "description": "Vehicle registration plate (e.g., DL-1PC-4512)."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Friendly display name of the bus route."
+        },
+        "driverName": {
+          "type": "string",
+          "description": "Assigned driver full name."
+        },
+        "driverPhone": {
+          "type": "string",
+          "description": "Assigned driver contact number."
+        },
+        "assignedGpsDeviceId": {
+          "type": "string",
+          "description": "Assigned hardware GPS tracker or driver mobile ID."
+        },
+        "gpsProviderName": {
+          "type": "string",
+          "description": "Adapter provider name."
+        },
+        "gpsStatus": {
+          "type": "string",
+          "enum": ["Connected", "Disconnected", "Location Updating", "Location Unavailable", "Invalid Credentials", "Unsupported Provider", "No Recent Data"],
+          "description": "Current GPS connection status."
+        },
+        "speedKmh": {
+          "type": "integer",
+          "description": "Current bus speed in km/h."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Last known GPS latitude."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Last known GPS longitude."
+        },
+        "routeSummary": {
+          "type": "string",
+          "description": "Bus route checkpoints summary."
+        },
+        "lastUpdatedText": {
+          "type": "string",
+          "description": "Human-readable last telemetry update timestamp."
+        },
+        "isDemo": {
+          "type": "boolean",
+          "description": "Whether this bus uses demo simulated telemetry."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "schoolId", "schoolName", "busNumber", "registrationNumber", "displayName", "driverName", "driverPhone", "assignedGpsDeviceId", "gpsProviderName", "gpsStatus", "speedKmh", "latitude", "longitude", "routeSummary", "lastUpdatedText", "isDemo", "createdAt", "updatedAt"]
+    },
+    "GpsProviderConfig": {
+      "title": "GpsProviderConfig",
+      "description": "Universal GPS Integration Manager adapter configuration for a school bus.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID in Firestore workspace."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "Assigned school ID."
+        },
+        "busId": {
+          "type": "string",
+          "description": "Assigned bus ID."
+        },
+        "providerName": {
+          "type": "string",
+          "description": "GPS provider adapter name."
+        },
+        "connectionMethod": {
+          "type": "string",
+          "description": "Adapter connection type (REST API, Webhook, Gateway Protocol, Device ID Mapping, Driver Mobile)."
+        },
+        "apiBaseUrl": {
+          "type": "string",
+          "description": "Authorized gateway endpoint URL."
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Hardware IMEI or tracker device identifier."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Connected", "Disconnected", "Invalid Credentials", "Unsupported Provider", "No Recent Data"],
+          "description": "Current adapter synchronization status."
+        },
+        "lastSyncText": {
+          "type": "string",
+          "description": "Last synchronization time text."
+        },
+        "lastLocationText": {
+          "type": "string",
+          "description": "Last received coordinates summary."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "schoolId", "busId", "providerName", "connectionMethod", "apiBaseUrl", "deviceId", "status", "lastSyncText", "lastLocationText", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profile and active role workspace settings."
+    },
+    "/schools/{schoolId}": {
+      "schema": { "$ref": "#/entities/SchoolRecord" },
+      "description": "Multi-school SaaS tenant schools."
+    },
+    "/buses/{busId}": {
+      "schema": { "$ref": "#/entities/BusRecord" },
+      "description": "School buses and live GPS telemetry states."
+    },
+    "/gps_configs/{configId}": {
+      "schema": { "$ref": "#/entities/GpsProviderConfig" },
+      "description": "Universal GPS Integration Manager adapter configurations."
+    }
+  }
+}

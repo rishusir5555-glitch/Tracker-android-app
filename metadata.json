@@ -1,0 +1,6 @@
+{
+  "name": "Swachh Shiksha",
+  "description": "Smart multi-school GPS school bus tracking platform with 3D cartoon visual identity for Parents, School Owners, and Super Admins.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

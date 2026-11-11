@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'rishusir5555@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    // Entity 1: UserProfile Validation Blueprint
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             data.phone is string && data.phone.size() <= 30 &&
+             data.activeRole is string && data.activeRole in ['PARENT', 'SCHOOL_OWNER', 'SUPER_ADMIN', 'DRIVER'] &&
+             data.selectedSchoolId is string && data.selectedSchoolId.size() <= 128 &&
+             data.selectedBusId is string && data.selectedBusId.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'phone', 'activeRole', 'selectedSchoolId', 'selectedBusId', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'phone', 'activeRole', 'selectedSchoolId', 'selectedBusId', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phone', 'activeRole', 'selectedSchoolId', 'selectedBusId', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Entity 2: SchoolRecord Validation Blueprint
+    function isValidSchoolRecord(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.schoolCode is string && data.schoolCode.size() >= 1 && data.schoolCode.size() <= 40 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.address is string && data.address.size() >= 1 && data.address.size() <= 250 &&
+             data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 100 &&
+             data.ownerMobile is string && data.ownerMobile.size() >= 1 && data.ownerMobile.size() <= 30 &&
+             data.loginId is string && data.loginId.size() >= 1 && data.loginId.size() <= 80 &&
+             data.busCount is int && data.busCount >= 0 && data.busCount <= 1000 &&
+             data.isActive is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /schools/{schoolId} {
+      allow get: if isSignedIn() && isValidId(schoolId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(schoolId) &&
+                       incoming().keys().hasAll(['userId', 'schoolCode', 'name', 'address', 'ownerName', 'ownerMobile', 'loginId', 'busCount', 'isActive', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'schoolCode', 'name', 'address', 'ownerName', 'ownerMobile', 'loginId', 'busCount', 'isActive', 'createdAt', 'updatedAt']) &&
+                       isValidSchoolRecord(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(schoolId) &&
+                       isValidSchoolRecord(incoming()) &&
+                       (existing().userId == request.auth.uid || isAdmin()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['schoolCode', 'name', 'address', 'ownerName', 'ownerMobile', 'loginId', 'busCount', 'isActive', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(schoolId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Entity 3: BusRecord Validation Blueprint
+    function isValidBusRecord(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.schoolId is string && data.schoolId.size() >= 1 && data.schoolId.size() <= 128 &&
+             data.schoolName is string && data.schoolName.size() >= 1 && data.schoolName.size() <= 120 &&
+             data.busNumber is string && data.busNumber.size() >= 1 && data.busNumber.size() <= 40 &&
+             data.registrationNumber is string && data.registrationNumber.size() >= 1 && data.registrationNumber.size() <= 40 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             data.driverName is string && data.driverName.size() >= 1 && data.driverName.size() <= 100 &&
+             data.driverPhone is string && data.driverPhone.size() >= 1 && data.driverPhone.size() <= 30 &&
+             data.assignedGpsDeviceId is string && data.assignedGpsDeviceId.size() <= 80 &&
+             data.gpsProviderName is string && data.gpsProviderName.size() <= 80 &&
+             data.gpsStatus is string && data.gpsStatus in ['Connected', 'Disconnected', 'Location Updating', 'Location Unavailable', 'Invalid Credentials', 'Unsupported Provider', 'No Recent Data'] &&
+             data.speedKmh is int && data.speedKmh >= 0 && data.speedKmh <= 200 &&
+             (data.latitude is float || data.latitude is int) && data.latitude >= -90.0 && data.latitude <= 90.0 &&
+             (data.longitude is float || data.longitude is int) && data.longitude >= -180.0 && data.longitude <= 180.0 &&
+             data.routeSummary is string && data.routeSummary.size() >= 1 && data.routeSummary.size() <= 200 &&
+             data.lastUpdatedText is string && data.lastUpdatedText.size() >= 1 && data.lastUpdatedText.size() <= 100 &&
+             data.isDemo is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /buses/{busId} {
+      allow get: if isSignedIn() && isValidId(busId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(busId) &&
+                       incoming().keys().hasAll(['userId', 'schoolId', 'schoolName', 'busNumber', 'registrationNumber', 'displayName', 'driverName', 'driverPhone', 'assignedGpsDeviceId', 'gpsProviderName', 'gpsStatus', 'speedKmh', 'latitude', 'longitude', 'routeSummary', 'lastUpdatedText', 'isDemo', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'schoolId', 'schoolName', 'busNumber', 'registrationNumber', 'displayName', 'driverName', 'driverPhone', 'assignedGpsDeviceId', 'gpsProviderName', 'gpsStatus', 'speedKmh', 'latitude', 'longitude', 'routeSummary', 'lastUpdatedText', 'isDemo', 'createdAt', 'updatedAt']) &&
+                       isValidBusRecord(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(busId) &&
+                       isValidBusRecord(incoming()) &&
+                       (existing().userId == request.auth.uid || isAdmin()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['schoolId', 'schoolName', 'busNumber', 'registrationNumber', 'displayName', 'driverName', 'driverPhone', 'assignedGpsDeviceId', 'gpsProviderName', 'gpsStatus', 'speedKmh', 'latitude', 'longitude', 'routeSummary', 'lastUpdatedText', 'isDemo', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(busId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Entity 4: GpsProviderConfig Validation Blueprint
+    function isValidGpsProviderConfig(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.schoolId is string && data.schoolId.size() >= 1 && data.schoolId.size() <= 128 &&
+             data.busId is string && data.busId.size() >= 1 && data.busId.size() <= 128 &&
+             data.providerName is string && data.providerName.size() >= 1 && data.providerName.size() <= 100 &&
+             data.connectionMethod is string && data.connectionMethod.size() >= 1 && data.connectionMethod.size() <= 80 &&
+             data.apiBaseUrl is string && data.apiBaseUrl.size() <= 250 &&
+             data.deviceId is string && data.deviceId.size() >= 1 && data.deviceId.size() <= 80 &&
+             data.status is string && data.status in ['Connected', 'Disconnected', 'Invalid Credentials', 'Unsupported Provider', 'No Recent Data'] &&
+             data.lastSyncText is string && data.lastSyncText.size() >= 1 && data.lastSyncText.size() <= 100 &&
+             data.lastLocationText is string && data.lastLocationText.size() >= 1 && data.lastLocationText.size() <= 120 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /gps_configs/{configId} {
+      allow get: if isSignedIn() && isValidId(configId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(configId) &&
+                       incoming().keys().hasAll(['userId', 'schoolId', 'busId', 'providerName', 'connectionMethod', 'apiBaseUrl', 'deviceId', 'status', 'lastSyncText', 'lastLocationText', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'schoolId', 'busId', 'providerName', 'connectionMethod', 'apiBaseUrl', 'deviceId', 'status', 'lastSyncText', 'lastLocationText', 'createdAt', 'updatedAt']) &&
+                       isValidGpsProviderConfig(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(configId) &&
+                       isValidGpsProviderConfig(incoming()) &&
+                       (existing().userId == request.auth.uid || isAdmin()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['schoolId', 'busId', 'providerName', 'connectionMethod', 'apiBaseUrl', 'deviceId', 'status', 'lastSyncText', 'lastLocationText', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(configId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+  }
+}
